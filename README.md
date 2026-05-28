@@ -1,4 +1,4 @@
-# HazardPin
+# Pothole Patrol
 
 Community road hazard reporter — pin it, verify it, fix it. Built with Next.js 15 + Cloudflare Pages + Cloudflare Workers. Uses D1 for relational data, R2 for photo storage, KV for sessions/leaderboard cache, and Durable Objects for review aggregation and leaderboard recomputation.
 
@@ -11,7 +11,7 @@ Community road hazard reporter — pin it, verify it, fix it. Built with Next.js
    - Create a Cloudflare D1 database, KV namespace, and R2 bucket.  
    - Update `wrangler.toml` with the real IDs.
 4. **Deploy D1 migrations:**  
-   `npx wrangler d1 migrations apply hazardpin-db`
+   `npx wrangler d1 migrations apply pothole-patrol-db`
 5. **Deploy Durable Objects + Workers:**  
    `npx wrangler deploy`
 6. **Build locally:**  

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getCloudflareEnv } from '@/app/lib/cloudflare'
+import { getCloudflareEnv } from '@/lib/cloudflare'
 import { nanoid } from 'nanoid'
 
 export const runtime = 'edge'
@@ -7,7 +7,7 @@ export const runtime = 'edge'
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const env = getCloudflareEnv()
   const { id } = await params
-  const body = await req.json()
+  const body = await req.json() as { reviewerId?: string; vote?: string; comment?: string }
   const { reviewerId, vote, comment } = body
   if (!reviewerId || !vote) {
     return NextResponse.json({ error: 'Missing reviewerId or vote' }, { status: 400 })
@@ -18,7 +18,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Fetch reviewer accuracy to compute weight
   const reviewer = await env.DB.prepare(
     'SELECT reviewerScore FROM users WHERE id = ?'
-  ).bind(reviewerId).first<{ reviewerScore: number }>()
+  ).bind(reviewerId).first() as { reviewerScore: number } | null
   const weight = reviewer?.reviewerScore ?? 1.0
 
   await env.DB.prepare(

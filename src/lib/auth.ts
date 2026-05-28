@@ -10,7 +10,7 @@ export interface UserSession {
 
 export async function getSession(req: NextRequest): Promise<UserSession | null> {
   const env = getCloudflareEnv()
-  const token = req.cookies.get('hazardpin.session')?.value ?? req.cookies.get('__Secure-next-auth.session-token')?.value
+  const token = req.cookies.get('pothole-patrol.session')?.value ?? req.cookies.get('__Secure-next-auth.session-token')?.value
   if (!token) return null
   try {
     const raw = await env.KV.get(`session:${token}`)

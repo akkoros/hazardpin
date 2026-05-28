@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getCloudflareEnv } from '@/app/lib/cloudflare'
+import { getCloudflareEnv } from '@/lib/cloudflare'
+import { nanoid } from 'nanoid'
 
 export const runtime = 'edge'
 
@@ -20,11 +21,26 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const env = getCloudflareEnv()
-  const body = await req.json()
-  if (!body.status) return NextResponse.json({ error: 'Missing status' }, { status: 400 })
+  const body = await req.json() as any
   const { id } = await params
-  await env.DB.prepare(
-    `UPDATE hazard_reports SET status = ?, updatedAt = ? WHERE id = ?`
-  ).bind(body.status, Math.floor(Date.now() / 1000), id).run()
+  const now = Math.floor(Date.now() / 1000)
+
+  if (body.status) {
+    await env.DB.prepare(
+      `UPDATE hazard_reports SET status = ?, updatedAt = ? WHERE id = ?`
+    ).bind(body.status, now, id).run()
+  }
+
+  if (body.imageKeys && body.imageKeys.length > 0) {
+    const publicBase = (env.NEXT_PUBLIC_R2_PUBLIC_URL as string) || 'https://images.potholepatrol.app'
+    for (let i = 0; i < body.imageKeys.length; i++) {
+      const key = body.imageKeys[i]
+      await env.DB.prepare(
+        `INSERT INTO report_images (id, reportId, url, r2Key, orderIdx, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(nanoid(), id, `${publicBase}/${key}`, key, i, now).run()
+    }
+  }
+
   return NextResponse.json({ ok: true })
 }

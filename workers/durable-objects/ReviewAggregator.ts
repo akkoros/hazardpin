@@ -45,15 +45,16 @@ export class ReviewAggregator {
 
   async promoteTier(userId: string) {
     const row = await this.env.DB.prepare(
-      'SELECT reportsVerified FROM users WHERE id = ?'
-    ).bind(userId).first<{ reportsVerified: number }>()
+      'SELECT reportsVerified, reporterScore FROM users WHERE id = ?'
+    ).bind(userId).first<{ reportsVerified: number; reporterScore: number }>()
     if (!row) return
     const verified = row.reportsVerified + 1
+    let newScore = row.reporterScore + 10
     let tier: string = 'COMMUNITY'
     if (verified >= 50) tier = 'VERIFIED'
     else if (verified >= 10) tier = 'TRUSTED'
     await this.env.DB.prepare(
-      'UPDATE users SET reportsVerified = ?, tier = ?, updatedAt = ? WHERE id = ?'
-    ).bind(verified, tier, Math.floor(Date.now() / 1000), userId).run()
+      'UPDATE users SET reportsVerified = ?, reporterScore = ?, tier = ?, updatedAt = ? WHERE id = ?'
+    ).bind(verified, newScore, tier, Math.floor(Date.now() / 1000), userId).run()
   }
 }

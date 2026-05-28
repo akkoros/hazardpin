@@ -9,8 +9,8 @@ export default function ReportDetail() {
   const [reviews, setReviews] = useState<any[]>([])
 
   useEffect(() => {
-    fetch(`/api/reports/${id}`).then(r => r.json()).then(setReport)
-    fetch(`/api/reports/${id}/reviews`).then(r => r.json()).then(d => setReviews(d.reviews || []))
+    fetch(`/api/reports/${id}`).then(r => r.json() as any).then(setReport)
+    fetch(`/api/reports/${id}/reviews`).then(r => r.json() as any).then((d: any) => setReviews(d.reviews || []))
   }, [id])
 
   if (!report) return <div className="p-4">Loading...</div>

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getCloudflareEnv } from '@/app/lib/cloudflare'
+import { getCloudflareEnv } from '@/lib/cloudflare'
 export const runtime = 'edge'
 
 export async function GET(req: Request) {
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const env = getCloudflareEnv()
-  const body = await req.json()
+  const body = await req.json() as { action?: string }
   // Optional admin guard later; for now allow force-refresh
   if (body && body.action === 'refresh') {
     try {

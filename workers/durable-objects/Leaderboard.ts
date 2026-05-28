@@ -19,6 +19,14 @@ export class Leaderboard {
 
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url)
+    if (req.method === "GET" && url.pathname === "/init") {
+      const alarm = await this.state.storage.getAlarm()
+      if (alarm == null) {
+        await this.state.storage.setAlarm(Date.now() + 5 * 60 * 1000)
+        return new Response(JSON.stringify({ initiated: true }))
+      }
+      return new Response(JSON.stringify({ initiated: false, nextAlarm: alarm }))
+    }
     if (req.method === "POST" && url.pathname === "/refresh") {
       await this.computeAndStore()
       return new Response(JSON.stringify({ refreshed: true }))
