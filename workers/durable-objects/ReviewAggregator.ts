@@ -1,3 +1,4 @@
+/// <reference types="@cloudflare/workers-types" />
 export interface Env {
   DB: D1Database
 }
@@ -10,13 +11,10 @@ interface ReportScore {
 }
 
 export class ReviewAggregator {
-  state: DurableObjectState
-  env: Env
-
-  constructor(state: DurableObjectState, env: Env) {
-    this.state = state
-    this.env = env
-  }
+  constructor(
+    private state: DurableObjectState,
+    private env: Env
+  ) {}
 
   async fetch(req: Request): Promise<Response> {
     const { reportId, vote, weight } = await req.json()
@@ -33,9 +31,9 @@ export class ReviewAggregator {
 
     if (current.up + current.down >= 3 && score >= 0.6) {
       await this.env.DB.prepare(
-        'UPDATE hazard_reports SET status = ?, verificationScore = ?, updatedAt = unixepoch() WHERE id = ?'
-      ).bind('VERIFIED', score, reportId).run()
-      // tier progression
+        'UPDATE hazard_reports SET status = ?, verificationScore = ?, updatedAt = ? WHERE id = ?'
+      ).bind('VERIFIED', score, Math.floor(Date.now() / 1000), reportId).run()
+
       const row = await this.env.DB.prepare(
         'SELECT reporterId FROM hazard_reports WHERE id = ?'
       ).bind(reportId).first<{ reporterId: string }>()
@@ -51,11 +49,11 @@ export class ReviewAggregator {
     ).bind(userId).first<{ reportsVerified: number }>()
     if (!row) return
     const verified = row.reportsVerified + 1
-    let tier = 'COMMUNITY'
+    let tier: string = 'COMMUNITY'
     if (verified >= 50) tier = 'VERIFIED'
     else if (verified >= 10) tier = 'TRUSTED'
     await this.env.DB.prepare(
-      'UPDATE users SET reportsVerified = ?, tier = ?, updatedAt = unixepoch() WHERE id = ?'
-    ).bind(verified, tier, userId).run()
+      'UPDATE users SET reportsVerified = ?, tier = ?, updatedAt = ? WHERE id = ?'
+    ).bind(verified, tier, Math.floor(Date.now() / 1000), userId).run()
   }
 }

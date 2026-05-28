@@ -1,6 +1,9 @@
-export function getRequestContext() {
-  // Next-on-pages provides this via @cloudflare/next-on-pages; stub for local
-  return {
-    env: (globalThis as any).__env ?? {}
+import { getRequestContext } from '@cloudflare/next-on-pages'
+
+export function getCloudflareEnv(): any {
+  try {
+    return getRequestContext().env
+  } catch {
+    return (globalThis as any).__env ?? {}
   }
 }

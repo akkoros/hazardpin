@@ -1,35 +1,55 @@
 import { NextResponse } from 'next/server'
-import { getRequestContext } from '@/app/lib/cloudflare'
+import { getCloudflareEnv } from '@/app/lib/cloudflare'
 import { nanoid } from 'nanoid'
 
 export const runtime = 'edge'
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const { env } = getRequestContext()
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const env = getCloudflareEnv()
+  const { id } = await params
   const body = await req.json()
-  const { reviewerId, vote, comment, weight } = body
-  const reportId = (await params).id
+  const { reviewerId, vote, comment } = body
+  if (!reviewerId || !vote) {
+    return NextResponse.json({ error: 'Missing reviewerId or vote' }, { status: 400 })
+  }
+
+  const now = Math.floor(Date.now() / 1000)
+
+  // Fetch reviewer accuracy to compute weight
+  const reviewer = await env.DB.prepare(
+    'SELECT reviewerScore FROM users WHERE id = ?'
+  ).bind(reviewerId).first<{ reviewerScore: number }>()
+  const weight = reviewer?.reviewerScore ?? 1.0
 
   await env.DB.prepare(
     `INSERT INTO reviews (id, reportId, reviewerId, vote, comment, weight, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, unixepoch())`
-  ).bind(nanoid(), reportId, reviewerId, vote, comment || '', weight ?? 1.0).run()
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(reportId, reviewerId) DO UPDATE SET vote = excluded.vote, comment = excluded.comment, weight = excluded.weight, createdAt = excluded.createdAt`
+  ).bind(nanoid(), id, reviewerId, vote, comment || '', weight, now).run()
 
-  // Notify DO
-  const id = env.REVIEW_AGGREGATOR.idFromName(reportId)
-  const stub = env.REVIEW_AGGREGATOR.get(id)
-  await stub.fetch(new Request('http://internal/update', {
-    method: 'POST',
-    body: JSON.stringify({ reportId, vote, weight: weight ?? 1.0 })
-  }))
+  // Notify ReviewAggregator DO
+  try {
+    const idObj = env.REVIEW_AGGREGATOR.idFromName(id)
+    const stub = env.REVIEW_AGGREGATOR.get(idObj)
+    const doResp = await stub.fetch(new Request('http://do.internal/aggregate', {
+      method: 'POST',
+      body: JSON.stringify({ reportId: id, vote, weight }),
+    }))
+    const doResult = await doResp.json()
 
-  return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, weight, ...doResult })
+  } catch (e: any) {
+    console.error('DO call failed:', e)
+    return NextResponse.json({ ok: true, weight, warning: 'DO aggregation skipped' })
+  }
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const { env } = getRequestContext()
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const env = getCloudflareEnv()
+  const { id } = await params
   const { results } = await env.DB.prepare(
-    `SELECT id, vote, comment, weight, createdAt FROM reviews WHERE reportId = ? ORDER BY createdAt DESC`
-  ).bind((await params).id).all()
+    `SELECT vote, comment, weight, createdAt FROM reviews WHERE reportId = ?`
+  ).bind(id).all()
+  // Anonymize — do not include reviewerId
   return NextResponse.json({ reviews: results })
 }
