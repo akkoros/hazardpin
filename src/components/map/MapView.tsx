@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import Link from 'next/link'
 
 interface Report {
   id: string
@@ -15,6 +14,7 @@ interface Report {
   displayName: string
   tier: string
   description?: string
+  createdAt?: string
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -24,6 +24,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   FALLEN_SIGNAGE: '#eab308',
   ROAD_CRACK: '#a855f7',
   OTHER: '#9ca3af',
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  POTHOLE: '🕳️ Pothole',
+  DEBRIS: '🚧 Debris',
+  FLOODING: '🌊 Flooding',
+  FALLEN_SIGNAGE: '🪧 Fallen Signage',
+  ROAD_CRACK: '💔 Road Crack',
+  OTHER: '❓ Other',
 }
 
 function severityOpacity(sev: string): number {
@@ -46,28 +55,54 @@ function severityRadius(sev: string): number {
   }
 }
 
-export default function MapView({ reports }: { reports: Report[] }) {
+function formatRelativeTime(dateStr?: string): string {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffSec = Math.floor(diffMs / 1000)
+  if (diffSec < 60) return 'just now'
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin}m ago`
+  const diffHr = Math.floor(diffMin / 60)
+  if (diffHr < 24) return `${diffHr}h ago`
+  const diffDay = Math.floor(diffHr / 24)
+  if (diffDay < 30) return `${diffDay}d ago`
+  return date.toLocaleDateString()
+}
+
+interface MapViewProps {
+  reports: Report[]
+  userLocation?: [number, number] | null
+}
+
+export default function MapView({ reports, userLocation }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
   const markersLayer = useRef<L.LayerGroup | null>(null)
-  const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060])
+  const userMarkerRef = useRef<L.CircleMarker | null>(null)
+  const legendRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!mapRef.current) return
     if (!mapInstance.current) {
-      const map = L.map(mapRef.current).setView(center, 12)
+      const startCenter: [number, number] = userLocation || [40.7128, -74.0060]
+      const map = L.map(mapRef.current).setView(startCenter, 12)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap'
       }).addTo(map)
       markersLayer.current = L.layerGroup().addTo(map)
       mapInstance.current = map
 
-      if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      if (userLocation) {
+        map.setView(userLocation, 14)
+      }
+
+      if (typeof window !== 'undefined' && 'geolocation' in navigator && !userLocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const lat = pos.coords.latitude
             const lng = pos.coords.longitude
-            setCenter([lat, lng])
             map.setView([lat, lng], 14)
           },
           () => {
@@ -81,10 +116,35 @@ export default function MapView({ reports }: { reports: Report[] }) {
         mapInstance.current.remove()
         mapInstance.current = null
         markersLayer.current = null
+        userMarkerRef.current = null
       }
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Update user location marker
+  useEffect(() => {
+    if (!mapInstance.current) return
+    // Remove existing user marker
+    if (userMarkerRef.current) {
+      userMarkerRef.current.remove()
+      userMarkerRef.current = null
+    }
+    if (userLocation) {
+      const marker = L.circleMarker(userLocation, {
+        radius: 8,
+        fillColor: '#3b82f6',
+        color: '#ffffff',
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 1,
+      })
+      marker.bindPopup('📍 Your location')
+      marker.addTo(mapInstance.current)
+      userMarkerRef.current = marker
+    }
+  }, [userLocation])
+
+  // Update report markers
   useEffect(() => {
     if (!mapInstance.current || !markersLayer.current) return
     markersLayer.current.clearLayers()
@@ -98,16 +158,37 @@ export default function MapView({ reports }: { reports: Report[] }) {
         opacity: 1,
         fillOpacity: severityOpacity(r.severity),
       })
+      const catLabel = CATEGORY_LABELS[r.category] || r.category
+      const timeStr = formatRelativeTime(r.createdAt)
       const popupHtml = `
-        <b>${r.category}</b> – ${r.severity}<br/>
+        <b>${catLabel}</b> – ${r.severity}<br/>
         Status: ${r.status}<br/>
         Reporter: ${r.displayName || 'Anonymous'} (${r.tier})<br/>
         ${r.description ? r.description + '<br/>' : ''}
+        ${timeStr ? '<span style="color:#64748b;font-size:0.85em">' + timeStr + '</span><br/>' : ''}
         <a href='/reports/${r.id}'>View report →</a>
       `
       marker.bindPopup(popupHtml).addTo(markersLayer.current!)
     })
   }, [reports])
 
-  return <div ref={mapRef} className="w-full h-full" />
+  return (
+    <div className="w-full h-full relative">
+      <div ref={mapRef} className="w-full h-full" />
+      {/* Legend */}
+      <div ref={legendRef} className="absolute bottom-2 left-2 z-[1000] bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-2 text-xs">
+        <div className="font-semibold mb-1 text-slate-700">Categories</div>
+        {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
+          <div key={cat} className="flex items-center gap-1.5 py-0.5">
+            <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+            <span className="text-slate-600">{CATEGORY_LABELS[cat] || cat}</span>
+          </div>
+        ))}
+        <div className="flex items-center gap-1.5 py-0.5 mt-0.5 pt-0.5 border-t">
+          <span className="inline-block w-3 h-3 rounded-full bg-blue-500 border-2 border-white" />
+          <span className="text-slate-600">Your location</span>
+        </div>
+      </div>
+    </div>
+  )
 }

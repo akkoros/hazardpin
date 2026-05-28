@@ -21,9 +21,15 @@ interface Report {
   status: string
   displayName: string
   tier: string
+  description?: string
+  createdAt?: string
 }
 
-export default function MapShell() {
+interface MapShellProps {
+  userLocation?: [number, number] | null
+}
+
+export default function MapShell({ userLocation }: MapShellProps) {
   const [reports, setReports] = useState<Report[]>([])
 
   useEffect(() => {
@@ -33,5 +39,5 @@ export default function MapShell() {
       .catch(() => setReports([]))
   }, [])
 
-  return <MapView reports={reports} />
+  return <MapView reports={reports} userLocation={userLocation} />
 }

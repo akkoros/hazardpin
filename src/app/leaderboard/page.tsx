@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import BottomNav from '@/components/BottomNav'
 
 export default function LeaderboardPage() {
   const [data, setData] = useState<any>({ users: [] })
@@ -12,28 +13,33 @@ export default function LeaderboardPage() {
   }, [])
 
   return (
-    <main className="max-w-lg mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Leaderboard</h1>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b">
-            <th className="text-left py-1">#</th>
-            <th className="text-left py-1">Name</th>
-            <th className="text-right py-1">Score</th>
-            <th className="text-right py-1">Tier</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.users?.map((u: any, i: number) => (
-            <tr key={u.id} className="border-b">
-              <td className="py-1">{i + 1}</td>
-              <td className="py-1">{u.displayName || 'Anonymous'}</td>
-              <td className="text-right py-1">{u.score}</td>
-              <td className="text-right py-1">{u.tier}</td>
+    <div className="flex flex-col min-h-screen bg-white">
+      <header className="px-4 py-3 border-b bg-white sticky top-0 z-10">
+        <h1 className="text-xl font-bold">🏆 Leaderboard</h1>
+      </header>
+      <main className="flex-1 max-w-lg mx-auto p-4 pb-20">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-1">#</th>
+              <th className="text-left py-1">Name</th>
+              <th className="text-right py-1">Score</th>
+              <th className="text-right py-1">Tier</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </main>
+          </thead>
+          <tbody>
+            {data.users?.map((u: any, i: number) => (
+              <tr key={u.id} className="border-b">
+                <td className="py-1">{i + 1}</td>
+                <td className="py-1">{u.displayName || 'Anonymous'}</td>
+                <td className="text-right py-1">{u.score}</td>
+                <td className="text-right py-1">{u.tier}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </main>
+      <BottomNav />
+    </div>
   )
 }

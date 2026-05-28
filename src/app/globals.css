@@ -3,4 +3,23 @@
 body {
   background: #ffffff;
   color: #0f172a;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* Padding for fixed bottom nav on mobile */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 3.5rem;
+  }
+}
+
+/* Leaflet popup overrides for better mobile UX */
+.leaflet-popup-content {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px !important;
 }
