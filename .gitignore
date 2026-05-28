@@ -46,3 +46,7 @@ next-env.d.ts
 # backup files
 *.bak
 node_modules.bak/
+
+# Local dev SQLite database
+.local-db/
+*.db

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getCloudflareEnv } from '@/lib/cloudflare'
-export const runtime = 'edge'
+// export const runtime = 'edge' // enabled for Cloudflare deployment
 
 export async function GET(req: Request) {
-  const env = getCloudflareEnv()
+  const env = await getCloudflareEnv()
   const url = new URL(req.url)
   const type = url.searchParams.get('type') || 'TOP_REPORTER'
   const period = url.searchParams.get('period') || 'WEEK'
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const env = getCloudflareEnv()
+  const env = await getCloudflareEnv()
   const body = await req.json() as { action?: string }
   // Optional admin guard later; for now allow force-refresh
   if (body && body.action === 'refresh') {

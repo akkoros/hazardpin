@@ -7,11 +7,11 @@ const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: (() => {
-        const env = getCloudflareEnv()
+        const env = await getCloudflareEnv()
         return (env.GOOGLE_CLIENT_ID as string) || ''
       })(),
       clientSecret: (() => {
-        const env = getCloudflareEnv()
+        const env = await getCloudflareEnv()
         return (env.GOOGLE_CLIENT_SECRET as string) || ''
       })(),
     }),
@@ -20,7 +20,7 @@ const handler = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === 'google') {
-        const env = getCloudflareEnv()
+        const env = await getCloudflareEnv()
         const email = user.email!
         const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first() as { id: string } | null
         if (!existing) {
@@ -49,7 +49,7 @@ const handler = NextAuth({
       return token
     },
     async session({ session, token }) {
-      const env = getCloudflareEnv()
+      const env = await getCloudflareEnv()
       const sessionToken = token.sessionToken as string | undefined
       if (sessionToken) {
         const raw = await env.KV.get('session:' + sessionToken)

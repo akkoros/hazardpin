@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getCloudflareEnv } from '@/lib/cloudflare'
 import { nanoid } from 'nanoid'
 
-export const runtime = 'edge'
+// export const runtime = 'edge' // enabled for Cloudflare deployment
 
 async function hmacSHA256(key: BufferSource, data: string): Promise<ArrayBuffer> {
   const cryptoKey = await crypto.subtle.importKey(
@@ -24,7 +24,7 @@ function toHex(buf: ArrayBuffer): string {
 }
 
 export async function POST(req: Request) {
-  const env = getCloudflareEnv()
+  const env = await getCloudflareEnv()
   const body = await req.json() as any
   const { reportId, index = 0, contentType = 'image/jpeg' } = body
   if (!reportId) {

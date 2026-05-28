@@ -3,10 +3,10 @@ import { getCloudflareEnv } from '@/lib/cloudflare'
 import { nanoid } from 'nanoid'
 import * as Geohash from 'latlon-geohash'
 
-export const runtime = 'edge'
+// export const runtime = 'edge' // enabled for Cloudflare deployment
 
 export async function GET(req: Request) {
-  const env = getCloudflareEnv()
+  const env = await getCloudflareEnv()
   const url = new URL(req.url)
   const swLat = parseFloat(url.searchParams.get('sw_lat') || '0')
   const neLat = parseFloat(url.searchParams.get('ne_lat') || '90')
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const env = getCloudflareEnv()
+  const env = await getCloudflareEnv()
   const body = await req.json() as any
   const { reporterId: rawReporterId, category, severity, description, latitude, longitude, address, imageKeys } = body
 

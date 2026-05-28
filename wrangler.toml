@@ -1,20 +1,20 @@
-name = "pothole-patrol"
+name = "hazardpin"
 compatibility_date = "2025-09-01"
 main = "workers/index.ts"
 
-# Dev-compatible top-level bindings (used by `wrangler dev` and Pages Functions local)
+# ── Dev bindings (local + remote dev) ──
 [[d1_databases]]
 binding = "DB"
-database_name = "pothole-patrol-db-dev"
-database_id = "<dev-d1-id>"
+database_name = "hazardpin-db-dev"
+database_id = "834f1f75-af68-44e3-987a-9583b28fb80e"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "<dev-kv-id>"
+id = "39d15d61e43f474883e403ca84b41e45"
 
 [[r2_buckets]]
 binding = "IMAGES"
-bucket_name = "pothole-patrol-images-dev"
+bucket_name = "hazardpin-images-dev"
 
 [[durable_objects.bindings]]
 name = "REVIEW_AGGREGATOR"
@@ -29,38 +29,9 @@ tag = "v1"
 new_classes = ["ReviewAggregator", "Leaderboard"]
 
 # Secrets (set via `wrangler secret put ...` or .dev.vars)
-# R2_ACCOUNT_ID
-# R2_ACCESS_KEY_ID
-# R2_SECRET_ACCESS_KEY
 # GOOGLE_CLIENT_ID
 # GOOGLE_CLIENT_SECRET
 
 [vars]
-NEXT_PUBLIC_APP_URL = "https://pothole-patrol.pages.dev"
-NEXT_PUBLIC_R2_PUBLIC_URL = "https://images.potholepatrol.app"
-
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "pothole-patrol-db"
-database_id = "<production-d1-id>"
-
-[[env.production.kv_namespaces]]
-binding = "KV"
-id = "<production-kv-id>"
-
-[[env.production.r2_buckets]]
-binding = "IMAGES"
-bucket_name = "pothole-patrol-images"
-
-[[env.staging.d1_databases]]
-binding = "DB"
-database_name = "pothole-patrol-db-staging"
-database_id = "<staging-d1-id>"
-
-[[env.staging.kv_namespaces]]
-binding = "KV"
-id = "<staging-kv-id>"
-
-[[env.staging.r2_buckets]]
-binding = "IMAGES"
-bucket_name = "pothole-patrol-images-staging"
+NEXT_PUBLIC_APP_URL = "http://localhost:3000"
+NEXT_PUBLIC_R2_PUBLIC_URL = "https://images.hazardpin.dev"

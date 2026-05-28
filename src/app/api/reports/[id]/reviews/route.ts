@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server'
 import { getCloudflareEnv } from '@/lib/cloudflare'
 import { nanoid } from 'nanoid'
 
-export const runtime = 'edge'
+// export const runtime = 'edge' // enabled for Cloudflare deployment
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const env = getCloudflareEnv()
+  const env = await getCloudflareEnv()
   const { id } = await params
   const body = await req.json() as { reviewerId?: string; vote?: string; comment?: string }
   const { reviewerId, vote, comment } = body
@@ -45,7 +45,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const env = getCloudflareEnv()
+  const env = await getCloudflareEnv()
   const { id } = await params
   const { results } = await env.DB.prepare(
     `SELECT vote, comment, weight, createdAt FROM reviews WHERE reportId = ?`

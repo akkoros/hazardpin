@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server'
 import { getCloudflareEnv } from '@/lib/cloudflare'
 import { nanoid } from 'nanoid'
 
-export const runtime = 'edge'
+// export const runtime = 'edge' // enabled for Cloudflare deployment
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const env = getCloudflareEnv()
+  const env = await getCloudflareEnv()
   const { id } = await params
   const report = await env.DB.prepare(
     `SELECT r.*, u.displayName, u.tier FROM hazard_reports r
@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const env = getCloudflareEnv()
+  const env = await getCloudflareEnv()
   const body = await req.json() as any
   const { id } = await params
   const now = Math.floor(Date.now() / 1000)
