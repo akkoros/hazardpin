@@ -1,18 +1,20 @@
 {
-  "name": "pothole-patrol",
+  "name": "hazardpin",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "build:cf": "opennextjs-cloudflare build",
+    "preview": "wrangler dev",
+    "deploy": "wrangler pages deploy .open-next/assets --project-name hazardpin",
     "lint": "eslint",
     "test": "vitest run"
   },
   "dependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
     "@cloudflare/workers-types": "^4.20260528.1",
+    "@opennextjs/cloudflare": "^1.19.11",
     "@types/leaflet": "^1.9.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -20,7 +22,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^1.17.0",
     "nanoid": "^5.1.11",
-    "next": "^15.5.2",
+    "next": "^15.5.18",
     "next-auth": "^4.24.14",
     "react": "19.1.0",
     "react-dom": "19.1.0",

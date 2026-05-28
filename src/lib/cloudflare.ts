@@ -1,4 +1,4 @@
-import { getRequestContext } from '@cloudflare/next-on-pages'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 // ── Types ──
 export interface Env {
@@ -14,7 +14,7 @@ export interface Env {
 // ── Check Cloudflare runtime ──
 function isCloudflare(): boolean {
   try {
-    getRequestContext()
+    getCloudflareContext()
     return true
   } catch {
     return false
@@ -29,7 +29,7 @@ let _localEnv: Env | null = null
 // In local dev: auto-initializes sql.js local DB on first call
 export async function getCloudflareEnv(): Promise<Env> {
   if (isCloudflare()) {
-    return getRequestContext().env as Env
+    return getCloudflareContext().env as Env
   }
   if (!_localEnv) {
     await initLocalEnv()
@@ -41,7 +41,7 @@ export async function getCloudflareEnv(): Promise<Env> {
 let _initPromise: Promise<Env> | null = null
 
 export function initLocalEnv(): Promise<Env> {
-  if (isCloudflare()) return Promise.resolve(getRequestContext().env as Env)
+  if (isCloudflare()) return Promise.resolve(getCloudflareContext().env as Env)
   if (_localEnv) return Promise.resolve(_localEnv)
   if (_initPromise) return _initPromise
 

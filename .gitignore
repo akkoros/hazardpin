@@ -50,3 +50,5 @@ node_modules.bak/
 # Local dev SQLite database
 .local-db/
 *.db
+.open-next/
+.wrangler/

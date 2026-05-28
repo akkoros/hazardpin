@@ -1,37 +1,29 @@
 name = "hazardpin"
-compatibility_date = "2025-09-01"
-main = "workers/index.ts"
+compatibility_date = "2026-05-28"
+compatibility_flags = ["nodejs_compat"]
+main = ".open-next/worker.js"
+pages_build_output_dir = ".open-next/assets"
 
-# ── Dev bindings (local + remote dev) ──
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+# ── Production D1 ──
 [[d1_databases]]
 binding = "DB"
-database_name = "hazardpin-db-dev"
-database_id = "834f1f75-af68-44e3-987a-9583b28fb80e"
+database_name = "hazardpin-db-prod"
+database_id = "1ad52409-c67d-4a6e-b95e-6a0e1fa60bc7"
 
+# ── Production KV ──
 [[kv_namespaces]]
 binding = "KV"
-id = "39d15d61e43f474883e403ca84b41e45"
+id = "3a64c447738b4c43978c46b123eedbf8"
 
+# ── Production R2 ──
 [[r2_buckets]]
 binding = "IMAGES"
-bucket_name = "hazardpin-images-dev"
+bucket_name = "hazardpin-images-prod"
 
-[[durable_objects.bindings]]
-name = "REVIEW_AGGREGATOR"
-class_name = "ReviewAggregator"
-
-[[durable_objects.bindings]]
-name = "LEADERBOARD"
-class_name = "Leaderboard"
-
-[[migrations]]
-tag = "v1"
-new_classes = ["ReviewAggregator", "Leaderboard"]
-
-# Secrets (set via `wrangler secret put ...` or .dev.vars)
+# Secrets (set via `wrangler secret put`):
 # GOOGLE_CLIENT_ID
 # GOOGLE_CLIENT_SECRET
-
-[vars]
-NEXT_PUBLIC_APP_URL = "http://localhost:3000"
-NEXT_PUBLIC_R2_PUBLIC_URL = "https://images.hazardpin.dev"

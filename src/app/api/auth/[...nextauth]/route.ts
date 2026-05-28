@@ -3,17 +3,15 @@ import GoogleProvider from 'next-auth/providers/google'
 import { getCloudflareEnv } from '@/lib/cloudflare'
 import { nanoid } from 'nanoid'
 
+// Google OAuth creds via env vars / CF secrets
+const G_CID = process.env.GOOGLE_CLIENT_ID || ''
+const G_SEC = process.env.GOOGLE_CLIENT_SECRET || ''
+
 const handler = NextAuth({
   providers: [
     GoogleProvider({
-      clientId: (() => {
-        const env = await getCloudflareEnv()
-        return (env.GOOGLE_CLIENT_ID as string) || ''
-      })(),
-      clientSecret: (() => {
-        const env = await getCloudflareEnv()
-        return (env.GOOGLE_CLIENT_SECRET as string) || ''
-      })(),
+      clientId: G_CID,
+      clientSecret: G_SEC,
     }),
   ],
   session: { strategy: 'jwt' },
@@ -33,7 +31,6 @@ const handler = NextAuth({
         } else {
           user.id = existing.id
         }
-        // Store session token in KV so session callback can reference it
         const sessionToken = nanoid()
         ;(user as any).__sessionToken = sessionToken
         await env.KV.put('session:' + sessionToken, JSON.stringify({ userId: user.id, email, tier: 'COMMUNITY' }), { expirationTtl: 7 * 24 * 3600 })
