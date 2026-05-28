@@ -5,8 +5,6 @@ export interface Env {
   DB: D1Database
   KV: KVNamespace
   IMAGES: R2Bucket
-  REVIEW_AGGREGATOR: DurableObjectNamespace
-  LEADERBOARD: DurableObjectNamespace
   NEXT_PUBLIC_APP_URL?: string
   NEXT_PUBLIC_R2_PUBLIC_URL?: string
   R2_PUBLIC_URL?: string  // secret set via `wrangler secret put`
@@ -26,8 +24,6 @@ function isCloudflare(): boolean {
 let _localEnv: Env | null = null
 
 // ── Get env — works in both CF and local dev ──
-// In Cloudflare: uses getRequestContext() automatically
-// In local dev: auto-initializes sql.js local DB on first call
 export async function getCloudflareEnv(): Promise<Env> {
   if (isCloudflare()) {
     return getCloudflareContext().env as Env
@@ -47,12 +43,8 @@ export function initLocalEnv(): Promise<Env> {
   if (_initPromise) return _initPromise
 
   _initPromise = (async () => {
-    // Dynamic imports — only needed in Node.js runtime (local dev)
-    // These CANNOT be top-level imports because this file is also
-    // imported from Edge Runtime API routes where fs/path don't exist
     const { readFileSync, writeFileSync, existsSync, mkdirSync } = await import('fs')
     const { join } = await import('path')
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const initSqlJs = require('sql.js')
     const SQL = await initSqlJs({
       locateFile: (file: string) => join(process.cwd(), 'node_modules', 'sql.js', 'dist', file),
@@ -75,10 +67,10 @@ export function initLocalEnv(): Promise<Env> {
       persistDb(db, dbPath, writeFileSync)
     }
 
-    // Seed demo data if empty
+    // Seed demo data if empty (local dev only)
     try {
       const result = db.exec('SELECT COUNT(*) as cnt FROM hazard_reports')
-      if (result[0]?.values[0]?.[0] === 0) {
+      if (result[0]?.values[0]?.[0] === 0 && process.env.NODE_ENV !== 'production') {
         console.log('[HazardPin] Seeding demo data...')
         seedDemoData(db)
         persistDb(db, dbPath, writeFileSync)
@@ -86,17 +78,14 @@ export function initLocalEnv(): Promise<Env> {
     } catch { /* table might not exist yet */ }
 
     const kvStore = new Map<string, { value: string; expiresAt?: number }>()
-
     _localEnv = {
       DB: createLocalD1(db, dbPath, writeFileSync),
       KV: createLocalKV(kvStore),
       IMAGES: createLocalR2(),
-      REVIEW_AGGREGATOR: {} as DurableObjectNamespace,
-      LEADERBOARD: {} as DurableObjectNamespace,
       NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
       NEXT_PUBLIC_R2_PUBLIC_URL: '/api/upload',
       R2_PUBLIC_URL: '/api/upload',
-      }
+    }
 
     return _localEnv
   })()
@@ -132,10 +121,10 @@ function simpleGeohash(lat: number, lng: number): string {
   const b32 = '0123456789bcdefghjkmnpqrstuvwxyz'
   let hash = '', loLat = -90, hiLat = 90, loLng = -180, hiLng = 180, bit = 0, ch = 0
   while (hash.length < 8) {
-    if (bit % 2 === 0) { // even bit = longitude
+    if (bit % 2 === 0) {
       const mLng = (loLng + hiLng) / 2
       if (lng >= mLng) { ch = ch * 2 + 1; loLng = mLng } else { ch = ch * 2; hiLng = mLng }
-    } else { // odd bit = latitude
+    } else {
       const mLat = (loLat + hiLat) / 2
       if (lat >= mLat) { ch = ch * 2 + 1; loLat = mLat } else { ch = ch * 2; hiLat = mLat }
     }
@@ -152,8 +141,6 @@ function createStubEnv(): Env {
     DB: { prepare: () => ({ bind: () => ({ first: err, all: err, run: err }) }) } as unknown as D1Database,
     KV: { get: async () => null, put: async () => {} } as unknown as KVNamespace,
     IMAGES: {} as R2Bucket,
-    REVIEW_AGGREGATOR: {} as DurableObjectNamespace,
-    LEADERBOARD: {} as DurableObjectNamespace,
     NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
     NEXT_PUBLIC_R2_PUBLIC_URL: '',
     R2_PUBLIC_URL: '',

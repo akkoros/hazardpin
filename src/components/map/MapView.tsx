@@ -87,14 +87,17 @@ function formatRelativeTime(dateStr?: string): string {
 interface MapViewProps {
   reports: Report[]
   userLocation?: [number, number] | null
+  onBoundsChange?: (bounds: { sw_lat: number; ne_lat: number; sw_lng: number; ne_lng: number }) => void
 }
 
-export default function MapView({ reports, userLocation }: MapViewProps) {
+export default function MapView({ reports, userLocation, onBoundsChange }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
   const markersLayer = useRef<L.LayerGroup | null>(null)
   const userMarkerRef = useRef<L.CircleMarker | null>(null)
   const legendRef = useRef<HTMLDivElement>(null)
+  const onBoundsChangeRef = useRef(onBoundsChange)
+  onBoundsChangeRef.current = onBoundsChange
 
   useEffect(() => {
     if (!mapRef.current) return
@@ -106,6 +109,21 @@ export default function MapView({ reports, userLocation }: MapViewProps) {
       }).addTo(map)
       markersLayer.current = L.layerGroup().addTo(map)
       mapInstance.current = map
+
+      // Notify parent of viewport bounds changes
+      const emitBounds = () => {
+        if (!onBoundsChangeRef.current) return
+        const b = map.getBounds()
+        onBoundsChangeRef.current({
+          sw_lat: b.getSouth(),
+          ne_lat: b.getNorth(),
+          sw_lng: b.getWest(),
+          ne_lng: b.getEast(),
+        })
+      }
+      map.on('moveend', emitBounds)
+      // Emit initial bounds
+      emitBounds()
 
       if (userLocation) {
         map.setView(userLocation, 14)
@@ -154,8 +172,14 @@ export default function MapView({ reports, userLocation }: MapViewProps) {
         iconSize: [24, 24],
         iconAnchor: [12, 12],
       })
-      const marker = L.marker(userLocation, { icon: blueDot })
-      marker.bindPopup('📍 Your location')
+      const marker = L.circleMarker(userLocation, {
+        radius: 8,
+        fillColor: '#3b82f6',
+        fillOpacity: 1,
+        color: '#fff',
+        weight: 3,
+        opacity: 1,
+      })
       marker.addTo(mapInstance.current)
       userMarkerRef.current = marker
       // Center map on user

@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { getCloudflareEnv } from '@/lib/cloudflare'
 import { nanoid } from 'nanoid'
 
-// export const runtime = 'edge' // enabled for Cloudflare deployment
-
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const env = await getCloudflareEnv()
   const { id } = await params
@@ -27,20 +25,36 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
      ON CONFLICT(reportId, reviewerId) DO UPDATE SET vote = excluded.vote, comment = excluded.comment, weight = excluded.weight, createdAt = excluded.createdAt`
   ).bind(nanoid(), id, reviewerId, vote, comment || '', weight, now).run()
 
-  // Notify ReviewAggregator DO
+  // Inline aggregation: count upvotes/downvotes and update report status
   try {
-    const idObj = env.REVIEW_AGGREGATOR.idFromName(id)
-    const stub = env.REVIEW_AGGREGATOR.get(idObj)
-    const doResp = await stub.fetch(new Request('http://do.internal/aggregate', {
-      method: 'POST',
-      body: JSON.stringify({ reportId: id, vote, weight }),
-    }))
-    const doResult = await doResp.json()
+    const { results } = await env.DB.prepare(
+      `SELECT vote, SUM(weight) as totalWeight FROM reviews WHERE reportId = ? GROUP BY vote`
+    ).bind(id).all()
 
-    return NextResponse.json({ ok: true, weight, ...doResult })
+    let upWeight = 0, downWeight = 0
+    for (const row of results as any[]) {
+      if (row.vote === 'UP') upWeight = row.totalWeight
+      else if (row.vote === 'DOWN') downWeight = row.totalWeight
+    }
+
+    // Auto-verify if enough weighted upvotes
+    let newStatus: string | null = null
+    if (upWeight >= 3 && upWeight > downWeight * 2) {
+      newStatus = 'VERIFIED'
+    } else if (downWeight >= 3 && downWeight > upWeight * 2) {
+      newStatus = 'DISPUTED'
+    }
+
+    if (newStatus) {
+      await env.DB.prepare(
+        'UPDATE hazard_reports SET status = ?, updatedAt = ? WHERE id = ?'
+      ).bind(newStatus, now, id).run()
+    }
+
+    return NextResponse.json({ ok: true, weight, upWeight, downWeight, status: newStatus })
   } catch (e: any) {
-    console.error('DO call failed:', e)
-    return NextResponse.json({ ok: true, weight, warning: 'DO aggregation skipped' })
+    console.error('[Reviews] Aggregation failed:', e)
+    return NextResponse.json({ ok: true, weight, warning: 'Aggregation skipped' })
   }
 }
 
