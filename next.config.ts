@@ -20,7 +20,9 @@ const nextConfig: NextConfig = {
     'kobold-pi:3000',
     'http://kobold-pi:3000',
     'kobold-pi.oryx-avior.ts.net:9443',
+    'kobold-pi.oryx-avior.ts.net:9444',
     'http://kobold-pi.oryx-avior.ts.net:3000',
+    'https://kobold-pi.oryx-avior.ts.net:9444',
   ],
 };
 
