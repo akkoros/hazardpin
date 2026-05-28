@@ -1,7 +1,26 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import MapShell from '@/components/MapShell'
 import BottomNav from '@/components/BottomNav'
 
-export default function Home() {
+export default function HomePage() {
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
+
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation([pos.coords.latitude, pos.coords.longitude])
+        },
+        () => {
+          // GPS denied — map defaults to NYC
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      )
+    }
+  }, [])
+
   return (
     <main className="h-screen flex flex-col">
       <header className="px-4 py-3 border-b flex items-center justify-between bg-white shrink-0">
@@ -16,7 +35,7 @@ export default function Home() {
         </div>
       </header>
       <div className="flex-1 relative">
-        <MapShell />
+        <MapShell userLocation={userLocation} />
         <a
           href="/submit"
           className="absolute bottom-20 right-4 z-[1000] bg-emerald-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-emerald-700 transition-colors text-2xl md:hidden"

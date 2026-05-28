@@ -35,6 +35,19 @@ const CATEGORY_LABELS: Record<string, string> = {
   OTHER: '❓ Other',
 }
 
+// SVG pin icon — no image dependency, always works
+const hazardPin = (color: string) => L.divIcon({
+  className: '',
+  html: `<div style="position:relative;width:28px;height:36px;">
+    <svg viewBox="0 0 28 36" width="28" height="36" style="filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.3))">
+      <path d="M14 0C6.3 0 0 6.3 0 14c0 11 14 22 14 22s14-11 14-22C28 6.3 21.7 0 14 0z" fill="${color}" stroke="#fff" stroke-width="1"/>
+      <circle cx="14" cy="14" r="5" fill="#fff"/>
+    </svg>
+  </div>`,
+  iconSize: [28, 36],
+  iconAnchor: [14, 36],
+})
+
 function severityOpacity(sev: string): number {
   switch (sev) {
     case 'CRITICAL': return 1.0
@@ -124,23 +137,29 @@ export default function MapView({ reports, userLocation }: MapViewProps) {
   // Update user location marker
   useEffect(() => {
     if (!mapInstance.current) return
-    // Remove existing user marker
+    // Remove existing user markers
     if (userMarkerRef.current) {
       userMarkerRef.current.remove()
       userMarkerRef.current = null
     }
     if (userLocation) {
-      const marker = L.circleMarker(userLocation, {
-        radius: 8,
-        fillColor: '#3b82f6',
-        color: '#ffffff',
-        weight: 3,
-        opacity: 1,
-        fillOpacity: 1,
+      // Pulsing blue dot for "you are here"
+      const blueDot = L.divIcon({
+        className: '',
+        html: `<div style="position:relative;width:24px;height:24px;">
+          <div style="position:absolute;inset:0;background:#3b82f6;border-radius:50%;opacity:0.3;animation:pulse 2s infinite;"></div>
+          <div style="position:absolute;inset:4px;background:#3b82f6;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>
+          <style>@keyframes pulse{0%,100%{transform:scale(1);opacity:0.3}50%{transform:scale(2);opacity:0}}</style>
+        </div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
       })
+      const marker = L.marker(userLocation, { icon: blueDot })
       marker.bindPopup('📍 Your location')
       marker.addTo(mapInstance.current)
       userMarkerRef.current = marker
+      // Center map on user
+      mapInstance.current.setView(userLocation, 14)
     }
   }, [userLocation])
 
@@ -150,13 +169,8 @@ export default function MapView({ reports, userLocation }: MapViewProps) {
     markersLayer.current.clearLayers()
     reports.forEach((r) => {
       const color = CATEGORY_COLORS[r.category] || CATEGORY_COLORS.OTHER
-      const marker = L.circleMarker([r.latitude, r.longitude], {
-        radius: severityRadius(r.severity),
-        fillColor: color,
-        color: color,
-        weight: 1,
-        opacity: 1,
-        fillOpacity: severityOpacity(r.severity),
+      const marker = L.marker([r.latitude, r.longitude], {
+        icon: hazardPin(color),
       })
       const catLabel = CATEGORY_LABELS[r.category] || r.category
       const timeStr = formatRelativeTime(r.createdAt)
