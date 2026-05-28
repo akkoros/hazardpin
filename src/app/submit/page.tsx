@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import BottomNav from '@/components/BottomNav'
+import Navbar from '@/components/Navbar'
 
 const LocationPicker = dynamic(() => import('@/components/LocationPicker'), {
   ssr: false,
@@ -377,10 +378,8 @@ export default function SubmitPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      {/* Header */}
-      <header className="px-4 py-3 border-b bg-white sticky top-0 z-10">
-        <h1 className="text-xl font-bold">Report Hazard</h1>
-      </header>
+      {/* Navbar */}
+      <Navbar />
 
       <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pb-20 md:pb-4">
         {/* Camera Section */}

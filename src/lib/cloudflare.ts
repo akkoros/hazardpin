@@ -57,14 +57,16 @@ export function initLocalEnv(): Promise<Env> {
     let db: any
     if (existsSync(dbPath)) {
       db = new SQL.Database(new Uint8Array(readFileSync(dbPath)))
+      // Apply any pending migrations
+      applyMigrations(db, persistDb, dbPath, writeFileSync)
     } else {
       db = new SQL.Database()
-      const migrationPath = join(process.cwd(), 'db/migrations/0001_init.sql')
-      if (existsSync(migrationPath)) {
-        db.exec(readFileSync(migrationPath, 'utf-8'))
+      const initPath = join(process.cwd(), 'db/migrations/0001_init.sql')
+      if (existsSync(initPath)) {
+        db.exec(readFileSync(initPath, 'utf-8'))
         console.log('[HazardPin] Local DB initialized with schema')
       }
-      persistDb(db, dbPath, writeFileSync)
+      applyMigrations(db, persistDb, dbPath, writeFileSync)
     }
 
     // Seed demo data if empty (local dev only)
@@ -91,6 +93,46 @@ export function initLocalEnv(): Promise<Env> {
   })()
 
   return _initPromise
+}
+
+// ── Apply pending migrations ──
+function applyMigrations(db: any, persist: (db: any) => void, dbPath: string, writeFileSync: typeof import('fs').writeFileSync) {
+  const persistDb = () => writeFileSync(dbPath, Buffer.from(db.export()))
+  const migrationsDir = join(process.cwd(), 'db/migrations')
+  if (!existsSync(migrationsDir)) return
+
+  // Create migrations tracking table
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, appliedAt INTEGER NOT NULL)`)
+  } catch { /* already exists */ }
+
+  const applied: Set<string> = new Set()
+  try {
+    const stmt = db.prepare('SELECT name FROM _migrations')
+    while (stmt.step()) applied.add(stmt.getAsObject().name as string)
+    stmt.free()
+  } catch { /* no migrations table yet */ }
+
+  const { readdirSync } = require('fs') as typeof import('fs')
+  const files = readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort()
+  for (const file of files) {
+    if (applied.has(file)) continue
+    console.log(`[HazardPin] Applying migration: ${file}`)
+    const sql = readFileSync(join(migrationsDir, file), 'utf-8')
+    // Handle multi-statement: split by semicolons and run each
+    for (const stmt of sql.split(';')) {
+      const trimmed = stmt.trim()
+      if (trimmed) {
+        try { db.exec(trimmed) } catch (e: any) {
+          // Allow ALTER TABLE "column already exists" errors
+          if (!String(e?.message || '').includes('duplicate column')) throw e
+        }
+      }
+    }
+    const now = Math.floor(Date.now() / 1000)
+    db.exec(`INSERT OR IGNORE INTO _migrations (name, appliedAt) VALUES ('${file}', ${now})`)
+    persistDb()
+  }
 }
 
 // ── Persist ──

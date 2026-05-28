@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import BottomNav from '@/components/BottomNav'
+import Navbar from '@/components/Navbar'
 
 export default function LeaderboardPage() {
   const [data, setData] = useState<any>({ users: [] })
@@ -14,10 +15,9 @@ export default function LeaderboardPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <header className="px-4 py-3 border-b bg-white sticky top-0 z-10">
-        <h1 className="text-xl font-bold">🏆 Leaderboard</h1>
-      </header>
+      <Navbar />
       <main className="flex-1 max-w-lg mx-auto p-4 pb-20">
+        <h1 className="text-xl font-bold text-slate-800 mb-4">🏆 Leaderboard</h1>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b">
