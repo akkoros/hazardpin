@@ -1,0 +1,48 @@
+name = "pothole-patrol"
+compatibility_date = "2025-09-01"
+main = "workers/index.ts"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "pothole-patrol-db"
+database_id = "<production-d1-id>"
+
+[[env.production.kv_namespaces]]
+binding = "KV"
+id = "<production-kv-id>"
+
+[[env.production.r2_buckets]]
+binding = "IMAGES"
+bucket_name = "pothole-patrol-images"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "pothole-patrol-db-staging"
+database_id = "<staging-d1-id>"
+
+[[env.staging.kv_namespaces]]
+binding = "KV"
+id = "<staging-kv-id>"
+
+[[env.staging.r2_buckets]]
+binding = "IMAGES"
+bucket_name = "pothole-patrol-images-staging"
+
+[[durable_objects.bindings]]
+name = "REVIEW_AGGREGATOR"
+class_name = "ReviewAggregator"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ReviewAggregator"]
+
+[[durable_objects.bindings]]
+name = "LEADERBOARD"
+class_name = "Leaderboard"
+
+[[migrations]]
+tag = "v2"
+new_classes = ["Leaderboard"]
+
+[vars]
+NEXT_PUBLIC_APP_URL = "https://pothole-patrol.pages.dev"
