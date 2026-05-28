@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const NAV_LINKS = [
-  { href: '/', label: 'Map', emoji: '🗺️' },
+  { href: '/', label: 'Home', emoji: '🏠' },
+  { href: '/map', label: 'Map', emoji: '🗺️' },
   { href: '/submit', label: 'Report', emoji: '📍' },
   { href: '/leaderboard', label: 'Leaderboard', emoji: '🏆' },
   { href: '/about', label: 'About', emoji: '💡' },

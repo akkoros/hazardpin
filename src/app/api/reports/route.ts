@@ -16,9 +16,13 @@ export async function GET(req: Request) {
   const statuses = statusParam.split(',')
 
   const { results } = await env.DB.prepare(
-    `SELECT r.*, u.displayName, u.tier
+    `SELECT r.*, u.displayName, u.tier,
+       COALESCE(v_up.cnt, 0) as upVotes,
+       COALESCE(v_down.cnt, 0) as downVotes
      FROM hazard_reports r
      JOIN users u ON r.reporterId = u.id
+     LEFT JOIN (SELECT reportId, COUNT(*) as cnt FROM reviews WHERE vote = 'UP' GROUP BY reportId) v_up ON v_up.reportId = r.id
+     LEFT JOIN (SELECT reportId, COUNT(*) as cnt FROM reviews WHERE vote = 'DOWN' GROUP BY reportId) v_down ON v_down.reportId = r.id
      WHERE r.latitude BETWEEN ? AND ?
        AND r.longitude BETWEEN ? AND ?
        AND r.status IN (${statuses.map(()=>'?').join(',')})
