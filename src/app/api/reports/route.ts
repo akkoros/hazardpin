@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       await env.DB.prepare(
         `INSERT INTO report_images (id, reportId, url, r2Key, orderIdx, createdAt)
          VALUES (?, ?, ?, ?, ?, ?)`
-      ).bind(nanoid(), reportId, `https://images.pothole-patrol.app/${key}`, key, i, now).run()
+      ).bind(nanoid(), reportId, `https://images.hazardpin.app/${key}`, key, i, now).run()
     }
   }
 

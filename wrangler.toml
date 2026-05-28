@@ -1,4 +1,4 @@
-name = "pothole-patrol"
+name = "hazardpin"
 compatibility_date = "2025-09-01"
 main = "workers/index.ts"
 
@@ -16,7 +16,7 @@ new_classes = ["ReviewAggregator", "Leaderboard"]
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "pothole-patrol-db"
+database_name = "hazardpin-db"
 database_id = "<production-d1-id>"
 
 [[env.production.kv_namespaces]]
@@ -25,11 +25,11 @@ id = "<production-kv-id>"
 
 [[env.production.r2_buckets]]
 binding = "IMAGES"
-bucket_name = "pothole-patrol-images"
+bucket_name = "hazardpin-images"
 
 [[env.staging.d1_databases]]
 binding = "DB"
-database_name = "pothole-patrol-db-staging"
+database_name = "hazardpin-db-staging"
 database_id = "<staging-d1-id>"
 
 [[env.staging.kv_namespaces]]
@@ -38,7 +38,7 @@ id = "<staging-kv-id>"
 
 [[env.staging.r2_buckets]]
 binding = "IMAGES"
-bucket_name = "pothole-patrol-images-staging"
+bucket_name = "hazardpin-images-staging"
 
 [vars]
-NEXT_PUBLIC_APP_URL = "https://pothole-patrol.pages.dev"
+NEXT_PUBLIC_APP_URL = "https://hazardpin.pages.dev"
