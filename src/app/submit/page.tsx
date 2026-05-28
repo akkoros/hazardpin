@@ -2,7 +2,17 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import BottomNav from '@/components/BottomNav'
+
+const LocationPicker = dynamic(() => import('@/components/LocationPicker'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-48 flex items-center justify-center bg-slate-100 rounded-lg text-slate-500 text-sm">
+      Loading map...
+    </div>
+  ),
+})
 
 const CATEGORIES = [
   { value: 'POTHOLE', label: 'Pothole', emoji: '🕳️' },
@@ -289,6 +299,14 @@ export default function SubmitPage() {
 
   const canSubmit = category && severity && lat !== null && !loading
 
+  const handleMapLocationChange = useCallback((newLat: number, newLng: number) => {
+    setLat(newLat)
+    setLng(newLng)
+    setGpsStatus('ok')
+    setShowManualLocation(false)
+    reverseGeocode(newLat, newLng).then(setAddress)
+  }, [])
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Header */}
@@ -363,15 +381,24 @@ export default function SubmitPage() {
               📍 Use my location
             </button>
           </div>
-          {gpsStatus === 'loading' && (
-            <p className="text-sm text-slate-500">📍 Getting your location...</p>
+          {/* Draggable map pin */}
+          {lat !== null && lng !== null && (
+            <LocationPicker
+              lat={lat}
+              lng={lng}
+              onLocationChange={handleMapLocationChange}
+              gpsStatus={gpsStatus}
+            />
           )}
-          {gpsStatus === 'ok' && lat !== null && lng !== null && (
-            <p className="text-sm text-emerald-700">
+          {lat !== null && lng !== null && (
+            <p className="text-sm text-emerald-700 mt-2">
               ✓ {address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`}
             </p>
           )}
-          {gpsStatus === 'error' && (
+          {gpsStatus === 'loading' && lat === null && (
+            <p className="text-sm text-slate-500">📍 Getting your location...</p>
+          )}
+          {gpsStatus === 'error' && lat === null && (
             <p className="text-sm text-red-500">Could not get location. Enter coordinates manually.</p>
           )}
           {showManualLocation && (
