@@ -37,7 +37,6 @@ function stripExif(file: File): Promise<File> {
     img.onload = () => {
       URL.revokeObjectURL(url)
       const canvas = document.createElement('canvas')
-      // Cap at 1600px on longest side for reasonable upload size
       const MAX = 1600
       let { width, height } = img
       if (width > MAX || height > MAX) {
@@ -81,6 +80,16 @@ function reverseGeocode(lat: number, lng: number): Promise<string> {
     .catch(() => `${lat.toFixed(5)}, ${lng.toFixed(5)}`)
 }
 
+function geocodeAddress(query: string): Promise<{ lat: number; lng: number; display: string } | null> {
+  return fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`)
+    .then(r => r.json())
+    .then((data: any[]) => {
+      if (data.length === 0) return null
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name }
+    })
+    .catch(() => null)
+}
+
 export default function SubmitPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -93,13 +102,16 @@ export default function SubmitPage() {
   const [description, setDescription] = useState('')
   const [address, setAddress] = useState('')
 
-  // GPS state
-  const [gpsStatus, setGpsStatus] = useState<'loading' | 'ok' | 'error'>('loading')
+  // GPS state — using watchPosition for continuous accuracy refinement
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
   const [showManualLocation, setShowManualLocation] = useState(false)
   const [manualLat, setManualLat] = useState('')
   const [manualLng, setManualLng] = useState('')
+  const [addressSearch, setAddressSearch] = useState('')
+  const [addressSearching, setAddressSearching] = useState(false)
+  const watchIdRef = useRef<number | null>(null)
 
   // Camera state
   const [cameraActive, setCameraActive] = useState(false)
@@ -107,35 +119,60 @@ export default function SubmitPage() {
   const streamRef = useRef<MediaStream | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Get GPS on mount
+  // Start GPS watch on mount
   useEffect(() => {
-    requestLocation()
+    startGpsWatch()
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+      }
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const requestLocation = useCallback(() => {
-    setGpsStatus('loading')
+  const startGpsWatch = useCallback(() => {
     if (!('geolocation' in navigator)) {
       setGpsStatus('error')
       setShowManualLocation(true)
       return
     }
-    navigator.geolocation.getCurrentPosition(
+    setGpsStatus('loading')
+    // Clear any existing watch
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+    }
+    watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const lat = pos.coords.latitude
-        const lng = pos.coords.longitude
-        setLat(lat)
-        setLng(lng)
+        const newLat = pos.coords.latitude
+        const newLng = pos.coords.longitude
+        setLat(newLat)
+        setLng(newLng)
         setGpsStatus('ok')
         setShowManualLocation(false)
-        reverseGeocode(lat, lng).then(setAddress)
+        reverseGeocode(newLat, newLng).then(setAddress)
       },
       () => {
         setGpsStatus('error')
         setShowManualLocation(true)
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
     )
   }, [])
+
+  const handleAddressSearch = useCallback(async () => {
+    if (!addressSearch.trim()) return
+    setAddressSearching(true)
+    const result = await geocodeAddress(addressSearch)
+    setAddressSearching(false)
+    if (result) {
+      setLat(result.lat)
+      setLng(result.lng)
+      setAddress(result.display)
+      setGpsStatus('ok')
+      setShowManualLocation(false)
+    } else {
+      setError('Address not found. Try a more specific address.')
+    }
+  }, [addressSearch])
 
   // Camera functions
   const startCamera = useCallback(async () => {
@@ -189,10 +226,8 @@ export default function SubmitPage() {
       return
     }
     const toAdd = newFiles.slice(0, remaining)
-    // Strip EXIF from all files
     const stripped = await Promise.all(toAdd.map(f => stripExif(f)))
     setFiles(prev => [...prev, ...stripped])
-    // Generate thumbnails
     stripped.forEach(f => {
       const url = URL.createObjectURL(f)
       setThumbnails(prev => [...prev, url])
@@ -212,7 +247,6 @@ export default function SubmitPage() {
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || [])
     addPhotos(selected)
-    // Reset input so same file can be selected again
     e.target.value = ''
   }, [addPhotos])
 
@@ -246,7 +280,7 @@ export default function SubmitPage() {
     const finalLat = lat ?? (manualLat ? parseFloat(manualLat) : null)
     const finalLng = lng ?? (manualLng ? parseFloat(manualLng) : null)
     if (finalLat === null || finalLng === null) {
-      setError('Location is required. Please enable GPS or enter coordinates manually.')
+      setError('Location is required. Use GPS, search an address, or tap the map.')
       return
     }
 
@@ -297,7 +331,7 @@ export default function SubmitPage() {
     }
   }
 
-  const canSubmit = category && severity && lat !== null && !loading
+  const canSubmit = category && severity && lat !== null && lng !== null && !loading
 
   const handleMapLocationChange = useCallback((newLat: number, newLng: number) => {
     setLat(newLat)
@@ -377,17 +411,38 @@ export default function SubmitPage() {
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-semibold text-slate-700">📍 Location</h2>
-            <button type="button" onClick={requestLocation} className="text-sm text-emerald-600 font-medium">
-              📍 Use my location
+            <button type="button" onClick={startGpsWatch} className="text-sm text-emerald-600 font-medium">
+              📍 Use my GPS
             </button>
           </div>
+
+          {/* Address search */}
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              placeholder="Search address or place name..."
+              value={addressSearch}
+              onChange={e => setAddressSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddressSearch() } }}
+              className="flex-1 border rounded-lg p-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={handleAddressSearch}
+              disabled={addressSearching}
+              className="bg-emerald-600 text-white px-4 rounded-lg text-sm font-medium disabled:bg-slate-300"
+            >
+              {addressSearching ? '...' : '🔍'}
+            </button>
+          </div>
+
           {/* Draggable map pin */}
           {lat !== null && lng !== null && (
             <LocationPicker
               lat={lat}
               lng={lng}
               onLocationChange={handleMapLocationChange}
-              gpsStatus={gpsStatus}
+              gpsStatus={gpsStatus === 'idle' ? 'loading' : gpsStatus}
             />
           )}
           {lat !== null && lng !== null && (
@@ -396,10 +451,15 @@ export default function SubmitPage() {
             </p>
           )}
           {gpsStatus === 'loading' && lat === null && (
-            <p className="text-sm text-slate-500">📍 Getting your location...</p>
+            <p className="text-sm text-slate-500">📍 Getting your GPS location (this can take 10-30 seconds)...</p>
           )}
           {gpsStatus === 'error' && lat === null && (
-            <p className="text-sm text-red-500">Could not get location. Enter coordinates manually.</p>
+            <div className="text-sm text-red-500">
+              <p>Could not get GPS. Search an address above or tap the map.</p>
+              <button type="button" onClick={() => setShowManualLocation(true)} className="text-emerald-600 underline mt-1">
+                Enter coordinates manually
+              </button>
+            </div>
           )}
           {showManualLocation && (
             <div className="flex gap-2 mt-2">
@@ -421,7 +481,6 @@ export default function SubmitPage() {
               />
             </div>
           )}
-          {/* Hidden fields for form data */}
           <input type="hidden" name="latitude" value={lat ?? ''} />
           <input type="hidden" name="longitude" value={lng ?? ''} />
         </div>

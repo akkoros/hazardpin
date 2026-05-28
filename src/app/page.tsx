@@ -1,23 +1,29 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import MapShell from '@/components/MapShell'
 import BottomNav from '@/components/BottomNav'
 
 export default function HomePage() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
+  const watchIdRef = useRef<number | null>(null)
 
   useEffect(() => {
     if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
+      watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
           setUserLocation([pos.coords.latitude, pos.coords.longitude])
         },
         () => {
-          // GPS denied — map defaults to NYC
+          // GPS denied — map defaults to center of US
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
       )
+    }
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+      }
     }
   }, [])
 
