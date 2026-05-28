@@ -32,13 +32,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   if (body.imageKeys && body.imageKeys.length > 0) {
-    const publicBase = (env.NEXT_PUBLIC_R2_PUBLIC_URL as string) || 'https://images.potholepatrol.app'
+    const publicBase = env.R2_PUBLIC_URL || env.NEXT_PUBLIC_R2_PUBLIC_URL || ''
     for (let i = 0; i < body.imageKeys.length; i++) {
       const key = body.imageKeys[i]
+      const imageUrl = publicBase ? `${publicBase.replace(/\/+$/, '')}/${key}` : key
       await env.DB.prepare(
         `INSERT INTO report_images (id, reportId, url, r2Key, orderIdx, createdAt)
          VALUES (?, ?, ?, ?, ?, ?)`
-      ).bind(nanoid(), id, `${publicBase}/${key}`, key, i, now).run()
+      ).bind(nanoid(), id, imageUrl, key, i, now).run()
     }
   }
 

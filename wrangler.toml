@@ -2,7 +2,6 @@ name = "hazardpin"
 compatibility_date = "2026-05-28"
 compatibility_flags = ["nodejs_compat"]
 main = ".open-next/worker.js"
-pages_build_output_dir = ".open-next/assets"
 
 [assets]
 directory = ".open-next/assets"
@@ -27,3 +26,4 @@ bucket_name = "hazardpin-images-prod"
 # Secrets (set via `wrangler secret put`):
 # GOOGLE_CLIENT_ID
 # GOOGLE_CLIENT_SECRET
+# R2_PUBLIC_URL

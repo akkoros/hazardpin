@@ -9,6 +9,7 @@ export interface Env {
   LEADERBOARD: DurableObjectNamespace
   NEXT_PUBLIC_APP_URL?: string
   NEXT_PUBLIC_R2_PUBLIC_URL?: string
+  R2_PUBLIC_URL?: string  // secret set via `wrangler secret put`
 }
 
 // ── Check Cloudflare runtime ──
@@ -94,7 +95,8 @@ export function initLocalEnv(): Promise<Env> {
       LEADERBOARD: {} as DurableObjectNamespace,
       NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
       NEXT_PUBLIC_R2_PUBLIC_URL: '/api/upload',
-    }
+      R2_PUBLIC_URL: '/api/upload',
+      }
 
     return _localEnv
   })()
@@ -154,6 +156,7 @@ function createStubEnv(): Env {
     LEADERBOARD: {} as DurableObjectNamespace,
     NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
     NEXT_PUBLIC_R2_PUBLIC_URL: '',
+    R2_PUBLIC_URL: '',
   }
 }
 

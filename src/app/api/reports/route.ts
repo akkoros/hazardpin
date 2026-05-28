@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getCloudflareEnv } from '@/lib/cloudflare'
 import { nanoid } from 'nanoid'
-import * as Geohash from 'latlon-geohash'
+import Geohash from 'latlon-geohash'
 
 // export const runtime = 'edge' // enabled for Cloudflare deployment
 
@@ -78,13 +78,14 @@ export async function POST(req: Request) {
   await env.KV.put(rlKey, String(currentCount + 1), { expirationTtl: 24 * 60 * 60 })
 
   if (imageKeys && imageKeys.length) {
-    const publicBase = (env.NEXT_PUBLIC_R2_PUBLIC_URL as string) || 'https://images.potholepatrol.app'
+    const publicBase = env.R2_PUBLIC_URL || env.NEXT_PUBLIC_R2_PUBLIC_URL || ''
     for (let i = 0; i < imageKeys.length; i++) {
       const key = imageKeys[i]
+      const imageUrl = publicBase ? `${publicBase.replace(/\/+$/, '')}/${key}` : key
       await env.DB.prepare(
         `INSERT INTO report_images (id, reportId, url, r2Key, orderIdx, createdAt)
          VALUES (?, ?, ?, ?, ?, ?)`
-      ).bind(nanoid(), reportId, `${publicBase}/${key}`, key, i, now).run()
+      ).bind(nanoid(), reportId, imageUrl, key, i, now).run()
     }
   }
 

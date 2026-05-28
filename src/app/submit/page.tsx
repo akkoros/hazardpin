@@ -90,6 +90,26 @@ function geocodeAddress(query: string): Promise<{ lat: number; lng: number; disp
     .catch(() => null)
 }
 
+async function getOrCreateUserId(): Promise<string> {
+  const STORAGE_KEY = 'hazardpin_user_id'
+  let userId = localStorage.getItem(STORAGE_KEY)
+  if (userId) return userId
+
+  try {
+    const res = await fetch('/api/auth/anonymous', { method: 'POST' })
+    if (!res.ok) throw new Error('Failed to create anonymous user')
+    const data = await res.json() as { userId: string }
+    userId = data.userId
+    localStorage.setItem(STORAGE_KEY, userId)
+    return userId
+  } catch {
+    // Fallback: generate locally (won't persist in D1 but allows offline use)
+    userId = crypto.randomUUID()
+    localStorage.setItem(STORAGE_KEY, userId)
+    return userId
+  }
+}
+
 export default function SubmitPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -101,6 +121,7 @@ export default function SubmitPage() {
   const [severity, setSeverity] = useState('')
   const [description, setDescription] = useState('')
   const [address, setAddress] = useState('')
+  const [reporterId, setReporterId] = useState<string | null>(null)
 
   // GPS state — using watchPosition for continuous accuracy refinement
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
@@ -118,6 +139,11 @@ export default function SubmitPage() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Ensure anonymous user ID on mount
+  useEffect(() => {
+    getOrCreateUserId().then(id => setReporterId(id))
+  }, [])
 
   // Start GPS watch on mount
   useEffect(() => {
@@ -250,24 +276,23 @@ export default function SubmitPage() {
     e.target.value = ''
   }, [addPhotos])
 
-  async function uploadPhotos(reportId: string): Promise<string[]> {
+  // Upload photos to R2 via /api/upload (direct, not presigned)
+  async function uploadPhotos(): Promise<string[]> {
     const keys: string[] = []
     for (let i = 0; i < files.length; i++) {
-      const res = await fetch('/api/upload/presign', {
+      setUploadProgress(`Uploading photo ${i + 1} of ${files.length}...`)
+      const formData = new FormData()
+      formData.append('file', files[i])
+      const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ reportId, index: i }),
+        body: formData,
       })
-      if (!res.ok) throw new Error(`Presign failed for file ${i + 1}`)
-      const { presignedUrl, key } = await res.json() as { presignedUrl: string; key: string }
-      const up = await fetch(presignedUrl, {
-        method: 'PUT',
-        body: files[i],
-        headers: { 'Content-Type': files[i].type || 'image/jpeg' },
-      })
-      if (!up.ok) throw new Error(`Upload failed for file ${i + 1}`)
-      keys.push(key)
-      setUploadProgress(`Uploaded ${i + 1} of ${files.length}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error || `Upload failed for file ${i + 1}`)
+      }
+      const data = await res.json() as { key: string; url: string }
+      keys.push(data.key)
     }
     return keys
   }
@@ -284,20 +309,40 @@ export default function SubmitPage() {
       return
     }
 
+    // Ensure we have a reporterId
+    let rid = reporterId
+    if (!rid) {
+      try {
+        rid = await getOrCreateUserId()
+        setReporterId(rid)
+      } catch {
+        setError('Failed to identify user. Please refresh and try again.')
+        return
+      }
+    }
+
     setLoading(true)
     setError('')
     setUploadProgress('')
 
     try {
+      // Upload images first (before creating report)
+      let imageKeys: string[] = []
+      if (files.length > 0) {
+        setUploadProgress('Uploading photos...')
+        imageKeys = await uploadPhotos()
+      }
+
+      setUploadProgress('Creating report...')
       const body = {
-        reporterId: 'demo-user',
+        reporterId: rid,
         category,
         severity,
         description,
         latitude: finalLat,
         longitude: finalLng,
         address,
-        imageKeys: [] as string[],
+        imageKeys,
       }
 
       const res = await fetch('/api/reports', {
@@ -311,23 +356,12 @@ export default function SubmitPage() {
       }
       const reportId = data.id!
 
-      if (files.length > 0) {
-        setUploadProgress('Uploading photos...')
-        const imageKeys = await uploadPhotos(reportId)
-        if (imageKeys.length > 0) {
-          await fetch(`/api/reports/${reportId}`, {
-            method: 'PATCH',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ imageKeys }),
-          })
-        }
-      }
-
       router.push(`/reports/${reportId}`)
     } catch (err: any) {
       setError(err.message || 'Submission failed')
     } finally {
       setLoading(false)
+      setUploadProgress('')
     }
   }
 
