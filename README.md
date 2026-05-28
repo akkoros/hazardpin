@@ -1,21 +1,22 @@
-# Pothole Patrol
+# HazardPin
 
-Community road hazard reporter built with Next.js 15 + Cloudflare Pages + Cloudflare Workers. Uses D1 for relational data, R2 for photo storage, KV for sessions/leaderboard cache, and Durable Objects for review aggregation and leaderboard recomputation.
+Community road hazard reporter — pin it, verify it, fix it. Built with Next.js 15 + Cloudflare Pages + Cloudflare Workers. Uses D1 for relational data, R2 for photo storage, KV for sessions/leaderboard cache, and Durable Objects for review aggregation and leaderboard recomputation.
 
 ## Setup
 
-1. **Clone / create the repo.**
+1. **Clone the repo.**
 2. **Install dependencies:**  
    `npm install`
 3. **Configure Wrangler:**  
    - Create a Cloudflare D1 database, KV namespace, and R2 bucket.  
    - Update `wrangler.toml` with the real IDs.
-4. **Deploy Durable Objects migrations:**  
-   `npx wrangler d1 migrations apply pothole-patrol-db`  
+4. **Deploy D1 migrations:**  
+   `npx wrangler d1 migrations apply hazardpin-db`
+5. **Deploy Durable Objects + Workers:**  
    `npx wrangler deploy`
-5. **Build locally:**  
+6. **Build locally:**  
    `npm run build`
-6. **Deploy to Cloudflare Pages:**  
+7. **Deploy to Cloudflare Pages:**  
    `npm run pages:build && npm run pages:deploy`
 
 ## Environment variables
