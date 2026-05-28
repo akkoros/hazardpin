@@ -32,6 +32,8 @@ export async function GET(req: Request) {
       id: u.id,
       displayName: u.displayName || 'Anonymous',
       score: (u.reportCount || 0) + (u.verifiedCount || 0) * 3,
+      reportCount: u.reportCount || 0,
+      verifiedCount: u.verifiedCount || 0,
       tier: u.tier || 'COMMUNITY',
     }))
 

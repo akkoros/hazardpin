@@ -396,7 +396,7 @@ export default function ReportDetail() {
 
         {/* ── Back link ── */}
         <a href="/" className="inline-flex items-center gap-1 text-emerald-600 text-sm font-medium hover:text-emerald-700 transition">
-          ← Back to map
+          ← Back to feed
         </a>
 
         {/* ── Report Card (Reddit-style) ── */}
