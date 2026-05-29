@@ -1,6 +1,24 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import Navbar from '@/components/Navbar'
 import BottomNav from '@/components/BottomNav'
+
+const SITE_URL = "https://hazardpin.moikapy.workers.dev"
+
+export const metadata: Metadata = {
+  title: "About",
+  description:
+    "Learn about HazardPin — a community-powered road hazard reporter. Our mission is safer streets through crowdsourced hazard reporting and verification.",
+  alternates: {
+    canonical: `${SITE_URL}/about`,
+  },
+  openGraph: {
+    title: "About HazardPin",
+    description:
+      "Learn about HazardPin — a community-powered road hazard reporter. Safer streets through crowdsourced hazard reporting.",
+    url: `${SITE_URL}/about`,
+  },
+}
 
 export default function AboutPage() {
   return (

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import BottomNav from '@/components/BottomNav'
+import ShareButton from '@/components/ShareButton'
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -398,12 +399,17 @@ export default function ReportDetail() {
       <Navbar />
       <main className="flex-1 max-w-lg mx-auto w-full p-4 space-y-4 pb-24">
 
-        {/* ── Back link + Delete ── */}
+        {/* ── Back link + Share + Delete ── */}
         <div className="flex items-center justify-between">
           <a href="/" className="inline-flex items-center gap-1 text-emerald-600 text-sm font-medium hover:text-emerald-700 transition">
             ← Back to feed
           </a>
-          {isOwner && (
+          <div className="flex items-center gap-3">
+            <ShareButton
+              url={`https://hazardpin.moikapy.workers.dev/reports/${id}`}
+              title={`${(report.category || 'HAZARD').replace(/_/g, ' ')} Hazard Report — HazardPin`}
+            />
+            {isOwner && (
             <div className="relative">
               <button
                 onClick={() => setShowDeleteConfirm(true)}
@@ -452,7 +458,8 @@ export default function ReportDetail() {
                 </div>
               )}
             </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* ── Report Card (Reddit-style) ── */}

@@ -1,6 +1,18 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import Navbar from '@/components/Navbar'
 import BottomNav from '@/components/BottomNav'
+
+const SITE_URL = "https://hazardpin.moikapy.workers.dev"
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description:
+    "Privacy Policy for HazardPin. Learn how we handle your data, location information, and anonymous identity on our community road hazard reporter.",
+  alternates: {
+    canonical: `${SITE_URL}/privacy`,
+  },
+}
 
 export default function PrivacyPage() {
   return (

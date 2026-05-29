@@ -1,6 +1,18 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import Navbar from '@/components/Navbar'
 import BottomNav from '@/components/BottomNav'
+
+const SITE_URL = "https://hazardpin.moikapy.workers.dev"
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description:
+    "Terms of Service for HazardPin — community road hazard reporter. Read about your rights, responsibilities, and our content policies.",
+  alternates: {
+    canonical: `${SITE_URL}/terms`,
+  },
+}
 
 export default function TermsPage() {
   return (
