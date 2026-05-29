@@ -45,3 +45,48 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   return NextResponse.json({ ok: true })
 }
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const env = await getCloudflareEnv()
+  const { id } = await params
+
+  // Parse reporterId from URL param or JSON body
+  const url = new URL(req.url)
+  let reporterId = url.searchParams.get('reporterId')
+  if (!reporterId) {
+    try {
+      const body = await req.json() as any
+      reporterId = body.reporterId
+    } catch { /* no body */ }
+  }
+
+  if (!reporterId) {
+    return NextResponse.json({ error: 'Missing reporterId' }, { status: 400 })
+  }
+
+  // Verify the report belongs to this user
+  const report = await env.DB.prepare(
+    `SELECT reporterId FROM hazard_reports WHERE id = ?`
+  ).bind(id).first()
+
+  if (!report) {
+    return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+  }
+
+  if ((report as any).reporterId !== reporterId) {
+    return NextResponse.json({ error: 'You can only delete your own reports' }, { status: 403 })
+  }
+
+  // Delete related records, then the report
+  await env.DB.prepare(`DELETE FROM report_images WHERE reportId = ?`).bind(id).run()
+  await env.DB.prepare(`DELETE FROM reviews WHERE reportId = ?`).bind(id).run()
+  await env.DB.prepare(`DELETE FROM flags WHERE reportId = ?`).bind(id).run()
+  await env.DB.prepare(`DELETE FROM hazard_reports WHERE id = ?`).bind(id).run()
+
+  // Invalidate leaderboard cache
+  await env.KV.delete('leaderboard:TOP_REPORTER:WEEK')
+  await env.KV.delete('leaderboard:TOP_REPORTER:MONTH')
+  await env.KV.delete('leaderboard:TOP_REPORTER:ALL')
+
+  return NextResponse.json({ ok: true, deleted: id })
+}

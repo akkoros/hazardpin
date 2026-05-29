@@ -101,9 +101,33 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* How it works — brief */}
+      <section className="bg-white border-b">
+        <div className="max-w-3xl mx-auto px-6 py-8">
+          <h2 className="text-xl font-bold text-slate-800 text-center mb-6">How it works</h2>
+          <div className="grid gap-6 md:grid-cols-3 text-center">
+            <div>
+              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl mx-auto mb-2">👀</div>
+              <h3 className="font-semibold text-slate-800 text-sm">1. Spot a hazard</h3>
+              <p className="text-xs text-slate-500 mt-1">Pothole, debris, flooding — report what you see.</p>
+            </div>
+            <div>
+              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl mx-auto mb-2">📍</div>
+              <h3 className="font-semibold text-slate-800 text-sm">2. Pin it on the map</h3>
+              <p className="text-xs text-slate-500 mt-1">Add location, photos, and severity details.</p>
+            </div>
+            <div>
+              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl mx-auto mb-2">✅</div>
+              <h3 className="font-semibold text-slate-800 text-sm">3. Community verifies</h3>
+              <p className="text-xs text-slate-500 mt-1">Neighbors confirm reports. Verified hazards get priority.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Stats bar */}
       {reports.length > 0 && (
-        <div className="bg-white border-b">
+        <div className="bg-slate-50 border-b">
           <div className="max-w-3xl mx-auto px-6 py-3 flex gap-6 text-sm">
             <div><span className="font-bold text-slate-800">{reports.length}</span> <span className="text-slate-500">reports</span></div>
             <div><span className="font-bold text-emerald-600">{verifiedCount}</span> <span className="text-slate-500">verified</span></div>
@@ -178,30 +202,6 @@ export default function HomePage() {
             </a>
           </div>
         )}
-      </section>
-
-      {/* How it works - brief */}
-      <section className="bg-white border-t">
-        <div className="max-w-3xl mx-auto px-6 py-10">
-          <h2 className="text-xl font-bold text-slate-800 text-center mb-8">How it works</h2>
-          <div className="grid gap-6 md:grid-cols-3 text-center">
-            <div>
-              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl mx-auto mb-2">👀</div>
-              <h3 className="font-semibold text-slate-800 text-sm">1. Spot a hazard</h3>
-              <p className="text-xs text-slate-500 mt-1">Pothole, debris, flooding — report what you see.</p>
-            </div>
-            <div>
-              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl mx-auto mb-2">📍</div>
-              <h3 className="font-semibold text-slate-800 text-sm">2. Pin it on the map</h3>
-              <p className="text-xs text-slate-500 mt-1">Add location, photos, and severity details.</p>
-            </div>
-            <div>
-              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl mx-auto mb-2">✅</div>
-              <h3 className="font-semibold text-slate-800 text-sm">3. Community verifies</h3>
-              <p className="text-xs text-slate-500 mt-1">Neighbors confirm reports. Verified hazards get priority.</p>
-            </div>
-          </div>
-        </div>
       </section>
 
       <BottomNav />

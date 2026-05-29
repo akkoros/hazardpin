@@ -351,6 +351,10 @@ export default function ReportDetail() {
   const [reviews, setReviews] = useState<any[]>([])
   const [flaggedImages, setFlaggedImages] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const isOwner = typeof window !== 'undefined' && report?.reporterId === localStorage.getItem('hazardpin_user_id')
 
   useEffect(() => {
     Promise.all([
@@ -394,10 +398,62 @@ export default function ReportDetail() {
       <Navbar />
       <main className="flex-1 max-w-lg mx-auto w-full p-4 space-y-4 pb-24">
 
-        {/* ── Back link ── */}
-        <a href="/" className="inline-flex items-center gap-1 text-emerald-600 text-sm font-medium hover:text-emerald-700 transition">
-          ← Back to feed
-        </a>
+        {/* ── Back link + Delete ── */}
+        <div className="flex items-center justify-between">
+          <a href="/" className="inline-flex items-center gap-1 text-emerald-600 text-sm font-medium hover:text-emerald-700 transition">
+            ← Back to feed
+          </a>
+          {isOwner && (
+            <div className="relative">
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-xs text-red-500 hover:text-red-700 font-medium transition"
+              >
+                Delete my report
+              </button>
+              {showDeleteConfirm && (
+                <div className="absolute right-0 top-7 z-30 w-64 bg-white rounded-xl shadow-lg border border-slate-200 p-4">
+                  <p className="text-sm font-medium text-slate-800 mb-1">Delete this report?</p>
+                  <p className="text-xs text-slate-500 mb-3">This cannot be undone. All images, votes, and comments will be removed.</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        setDeleting(true)
+                        const userId = localStorage.getItem('hazardpin_user_id')
+                        try {
+                          const res = await fetch(`/api/reports/${id}?reporterId=${userId}`, { method: 'DELETE' })
+                          if (res.ok) {
+                            window.location.href = '/'
+                          } else {
+                            const data = await res.json()
+                            alert(data.error || 'Delete failed')
+                            setDeleting(false)
+                            setShowDeleteConfirm(false)
+                          }
+                        } catch {
+                          alert('Network error')
+                          setDeleting(false)
+                          setShowDeleteConfirm(false)
+                        }
+                      }}
+                      disabled={deleting}
+                      className="flex-1 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+                    >
+                      {deleting ? 'Deleting...' : 'Delete'}
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={deleting}
+                      className="flex-1 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* ── Report Card (Reddit-style) ── */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
